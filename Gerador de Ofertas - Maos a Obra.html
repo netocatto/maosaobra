@@ -1,0 +1,764 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Gerador de Ofertas Mãos à Obra</title><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Gerador de Ofertas Mãos à Obra</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap">
+<style>
+/* Layout: barra da marca no topo; formulário à esquerda, prévias do feed e do Story à direita; legenda embaixo. Empilha no celular. */
+:root{
+  --bg:#F3F1EC; --panel:#FFFFFF; --field:#FAF9F6; --ink:#0E1320; --muted:#5A6070; --line:#DCD8CF;
+  --accent:#183E9F; --accent-ink:#FFFFFF; --yellow:#FFC61A; --on-yellow:#0E1320; --ok:#1F7A3E; --err:#B3261E;
+  --font:"Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1018; --panel:#151A24; --field:#10141C; --ink:#EEF0F4; --muted:#9AA1B2; --line:#283040;
+  --accent:#7C9DF2; --accent-ink:#0D1018; --ok:#5CC98A; --err:#FF8A80; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0D1018; --panel:#151A24; --field:#10141C; --ink:#EEF0F4; --muted:#9AA1B2; --line:#283040;
+  --accent:#7C9DF2; --accent-ink:#0D1018; --ok:#5CC98A; --err:#FF8A80; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink); font-family:var(--font); font-size:15px; line-height:1.45}
+.wrap{max-width:1240px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:20px 48px}
+.brand{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:20px}
+.mark{width:48px; height:48px; border-radius:12px; background:#183E9F; display:grid; place-items:center; flex:none}
+.mark span{font-weight:900; font-size:40px; line-height:1; color:#FFC61A; letter-spacing:-2px; margin-top:-7px}
+.brand h1{margin:0; font-size:26px; font-weight:900; letter-spacing:-0.8px; text-wrap:balance}
+.brand p{margin:2px 0 0; color:var(--muted); font-size:14px}
+.grid{display:grid; grid-template-columns:minmax(0, 380px) minmax(0, 1fr); gap:20px; align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; min-width:0}
+.panel h2{margin:0 0 14px; font-size:13px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:var(--muted)}
+form{display:flex; flex-direction:column; gap:14px}
+label.f{display:flex; flex-direction:column; gap:6px; font-weight:700; font-size:14px}
+label.f small{font-weight:500; color:var(--muted)}
+input[type=text], input[type=date], textarea{font:inherit; font-size:15px; color:var(--ink); background:var(--field); border:1.5px solid var(--line); border-radius:10px; padding:11px 12px; width:100%}
+textarea{resize:vertical; min-height:74px}
+input:focus-visible, textarea:focus-visible, button:focus-visible, .drop:focus-within{outline:3px solid var(--yellow); outline-offset:2px}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:420px){.row2{grid-template-columns:1fr}}
+.check{display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px}
+.check input{width:18px; height:18px; accent-color:#183E9F}
+.drop{display:flex; gap:14px; align-items:center; border:2px dashed var(--line); border-radius:12px; padding:12px; background:var(--field); cursor:pointer; position:relative}
+.drop.over{border-color:var(--yellow)}
+.drop input{position:absolute; inset:0; opacity:0; cursor:pointer}
+.thumb{width:84px; height:84px; flex:none; border-radius:10px; background:repeating-conic-gradient(#d9d6cf 0 25%, #f2f0eb 0 50%) 0 0/16px 16px; display:grid; place-items:center; overflow:hidden}
+.thumb img{max-width:100%; max-height:100%}
+.drop b{display:block}
+.drop span{color:var(--muted); font-size:13px}
+details{border-top:1px solid var(--line); padding-top:12px}
+summary{cursor:pointer; font-weight:700; font-size:14px}
+details .inner{display:flex; flex-direction:column; gap:12px; margin-top:12px}
+.note{font-size:13px; color:var(--muted); background:var(--field); border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+.outs{display:flex; flex-direction:column; gap:20px; min-width:0}
+.previews{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,0.85fr); gap:20px; align-items:start}
+@media (max-width:640px){.previews{grid-template-columns:minmax(0,1fr)}}
+.pv{display:flex; flex-direction:column; gap:10px; min-width:0}
+.pv h3{margin:0; font-size:15px; font-weight:800; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap}
+.pv h3 em{font-style:normal; font-weight:600; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums}
+.pv canvas, .pv video{width:100%; height:auto; border-radius:10px; display:block; background:#F5F3EE; box-shadow:0 1px 0 var(--line), 0 10px 30px -18px rgba(0,0,0,.45)}
+.btns{display:flex; gap:8px; flex-wrap:wrap}
+button{font:inherit; font-weight:800; font-size:14px; border-radius:10px; padding:11px 14px; cursor:pointer; border:1.5px solid transparent; min-height:44px}
+.b1{background:var(--yellow); color:var(--on-yellow)}
+.b1:hover{filter:brightness(.95)}
+.b2{background:transparent; color:var(--ink); border-color:var(--line)}
+.b2:hover{border-color:var(--ink)}
+button:disabled{opacity:.55; cursor:progress}
+.hint{font-size:12.5px; color:var(--muted); margin:0}
+input::placeholder, textarea::placeholder{color:var(--muted); opacity:.6}
+select{font:inherit; font-size:15px; color:var(--ink); background:var(--field); border:1.5px solid var(--line); border-radius:10px; padding:11px 12px; width:100%}
+a.b2{display:inline-flex; align-items:center; justify-content:center; text-decoration:none; font-weight:800; font-size:14px; border-radius:10px; padding:11px 14px; min-height:44px; border:1.5px solid var(--line); color:var(--ink)}
+a.b2:hover{border-color:var(--ink)}
+.busca{display:flex; flex-direction:column; gap:8px}
+.salvas{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px}
+.card{display:flex; flex-direction:column; gap:6px; border:1px solid var(--line); border-radius:12px; padding:8px; background:var(--field); min-width:0}
+.card img{width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:8px; background:#F5F3EE}
+.card b{font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.card span{font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.card .btns{gap:6px}
+.card button{flex:1 1 auto; min-height:38px; padding:8px 10px; font-size:13px}
+.vazio{color:var(--muted); font-size:14px; margin:0}
+.topo{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.badge{display:inline-block; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--on-yellow); background:var(--yellow); border-radius:999px; padding:4px 10px}
+#legenda{min-height:260px; font-size:14.5px; line-height:1.5}
+.status{font-size:13.5px; font-weight:600; min-height:20px; margin:0}
+.status.ok{color:var(--ok)} .status.err{color:var(--err)}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom, 0px)); background:var(--ink); color:var(--bg); padding:12px 16px; border-radius:10px; font-weight:700; font-size:14px; max-width:calc(100% - 32px); box-shadow:0 10px 30px rgba(0,0,0,.3)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="brand">
+    <div class="mark" aria-hidden="true"><span>m</span></div>
+    <div>
+      <h1>Gerador de ofertas</h1>
+      <p>Envie a foto, preencha os dados e baixe o post do feed, o Story e a legenda.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="t-dados">
+      <h2 id="t-dados">Dados do produto</h2>
+      <form id="form" autocomplete="off">
+        <div class="topo">
+          <button type="button" class="b2" id="bAbrir">Abrir post já criado</button>
+          <button type="button" class="b1" id="bSalvar">Salvar oferta</button>
+          <input type="file" id="abrirArq" accept="image/png" hidden>
+        </div>
+        <div class="drop" id="drop">
+          <div class="thumb"><img id="thumb" alt="Foto do produto recortada" hidden></div>
+          <div><b>Foto do produto</b><span id="fotoInfo">Toque para escolher ou arraste a foto aqui. Funciona melhor com fundo branco.</span></div>
+          <input type="file" id="foto" accept="image/*" aria-label="Escolher foto do produto">
+        </div>
+        <div class="busca">
+          <a class="b2" id="buscar" href="https://www.google.com/search?tbm=isch&amp;q=produto" target="_blank" rel="noopener">Buscar foto no Google</a>
+          <p class="hint">Digite o nome e o fabricante antes. Achou a foto? No computador: clique com o botão direito, "Copiar imagem", volte aqui e aperte Ctrl+V. No celular: salve a imagem e escolha no campo de foto acima.</p>
+        </div>
+        <label class="check"><input type="checkbox" id="tirarFundo" checked> Remover fundo branco</label>
+        <label class="check"><input type="checkbox" id="tirarMiolo"> Remover também o branco de dentro (ex.: entre as pernas do carrinho)</label>
+
+        <label class="f" for="nome">Nome do produto *
+          <input type="text" id="nome" maxlength="60" placeholder="Carrinho de mão">
+        </label>
+        <label class="f" for="fabricante">Fabricante <small>opcional</small>
+          <input type="text" id="fabricante" maxlength="40" placeholder="Tramontina">
+        </label>
+        <label class="f" for="info">Informações adicionais <small>uma por linha, até 3</small>
+          <textarea id="info" rows="3" placeholder="Caçamba metálica&#10;Roda de borracha"></textarea>
+        </label>
+        <label class="f" for="formato">Formato do preço
+          <select id="formato">
+            <option value="por">Por apenas R$ …</option>
+            <option value="partir">A partir de R$ …</option>
+            <option value="depor">De R$ … por R$ …</option>
+            <option value="hoje">Só hoje R$ …</option>
+            <option value="especial">Preço especial R$ …</option>
+          </select>
+        </label>
+        <div class="row2">
+          <label class="f" for="precoDe" id="precoDeBox" hidden>Preço antigo (De) *
+            <input type="text" id="precoDe" inputmode="decimal" maxlength="12" placeholder="349,90">
+          </label>
+          <label class="f" for="preco"><span id="precoRot">Preço (R$) *</span>
+            <input type="text" id="preco" inputmode="decimal" maxlength="12" placeholder="299,90">
+          </label>
+          <label class="f" for="validade">Validade <small>opcional</small>
+            <input type="date" id="validade">
+          </label>
+        </div>
+        <label class="f" for="pagamento">Condição de pagamento <small>opcional</small>
+          <input type="text" id="pagamento" maxlength="48" placeholder="em até 2x sem juros">
+        </label>
+
+        <details>
+          <summary>Dados da loja</summary>
+          <div class="inner">
+            <label class="f" for="whats">WhatsApp
+              <input type="text" id="whats" maxlength="24">
+            </label>
+            <label class="f" for="endereco">Endereço
+              <input type="text" id="endereco" maxlength="80">
+            </label>
+          </div>
+        </details>
+        <p class="note" id="exemploNota">Os textos em cinza são só exemplos. A prévia mostra esse exemplo até você preencher os campos.</p>
+      </form>
+    </section>
+
+    <div class="outs">
+      <section class="panel" aria-labelledby="t-prev">
+        <h2 id="t-prev">Prévias <span class="badge" id="badgeEx">Exemplo</span></h2>
+        <div class="previews">
+          <div class="pv">
+            <h3>Feed <em>1080 × 1350</em></h3>
+            <canvas id="cFeed" width="1080" height="1350" aria-label="Prévia do post para o feed"></canvas>
+            <div class="btns"><button type="button" class="b1" id="bFeed">Baixar imagem do feed</button></div>
+          </div>
+          <div class="pv">
+            <h3>Story <em>1080 × 1920</em></h3>
+            <canvas id="cStory" width="1080" height="1920" aria-label="Prévia do Story"></canvas>
+            <video id="vStory" playsinline muted loop controls hidden></video>
+            <div class="btns">
+              <button type="button" class="b1" id="bStory">Baixar imagem do Story</button>
+              <button type="button" class="b2" id="bVideo">Gerar vídeo do Story</button>
+            </div>
+            <p class="status" id="vStatus" role="status"></p>
+          </div>
+        </div>
+        <p class="hint">No celular, se o botão de baixar não funcionar, toque e segure na imagem para salvar.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="t-salvas" id="painelSalvas">
+        <h2 id="t-salvas">Ofertas salvas</h2>
+        <div class="salvas" id="salvas"></div>
+        <p class="hint" style="margin-top:12px">Ficam guardadas neste navegador, neste aparelho. Toda imagem baixada também salva a oferta aqui.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="t-leg">
+        <h2 id="t-leg">Legenda para o Instagram</h2>
+        <label class="f" for="legenda"><small>Você pode editar o texto antes de copiar.</small>
+          <textarea id="legenda"></textarea>
+        </label>
+        <div class="btns" style="margin-top:12px">
+          <button type="button" class="b1" id="bCopiar">Copiar legenda</button>
+          <button type="button" class="b2" id="bOutra">Outra versão</button>
+          <button type="button" class="b2" id="bTxt">Baixar .txt</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const C = {blue:"#183E9F", yel:"#FFC61A", yelD:"#E2AE0C", red:"#D7262E", ink:"#0E1320", off:"#F5F3EE", sand:"#E8E2D6", grey:"#4A4F5C", white:"#FFFFFF"};
+const FF = 'Inter, "Arial Black", Arial, sans-serif';
+const $ = id => document.getElementById(id);
+const cFeed = $("cFeed"), cStory = $("cStory");
+let produto = null;      // canvas recortado
+let fotoOriginal = null; // Image
+let versaoLegenda = 0;
+
+/* ---------- utilidades ---------- */
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const easeOut = p => 1 - Math.pow(1 - p, 3);
+const easeBack = p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3*Math.pow(p-1,3) + c1*Math.pow(p-1,2); };
+function font(w, s){ return w + " " + Math.round(s) + "px " + FF; }
+function spacing(ctx, px){ if ("letterSpacing" in ctx) ctx.letterSpacing = px + "px"; }
+function slug(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
+function tag(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function wrap(ctx, text, maxW){
+  const words = String(text).split(/\s+/).filter(Boolean); const lines = []; let cur = "";
+  for (const w of words){ const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w; } }
+  if (cur) lines.push(cur); return lines;
+}
+function fit(ctx, text, weight, maxW, maxLines, start, min){
+  for (let s = start; s >= min; s -= 2){
+    ctx.font = font(weight, s);
+    const lines = wrap(ctx, text, maxW);
+    const orfa = lines.length > 1 && lines[lines.length-1].length <= 3 && s > min + 10;
+    if (!orfa && lines.length <= maxLines && lines.every(l => ctx.measureText(l).width <= maxW)) return {size:s, lines};
+  }
+  ctx.font = font(weight, min); return {size:min, lines: wrap(ctx, text, maxW).slice(0, maxLines)};
+}
+function parsePreco(v){
+  let s = String(v||"").replace(/[^\d.,]/g,"");
+  if (!s) return null;
+  let inteiro, cent;
+  if (s.includes(",")){ const i = s.lastIndexOf(","); inteiro = s.slice(0,i).replace(/\./g,""); cent = s.slice(i+1); }
+  else if (/\.\d{1,2}$/.test(s)){ const i = s.lastIndexOf("."); inteiro = s.slice(0,i).replace(/\./g,""); cent = s.slice(i+1); }
+  else { inteiro = s.replace(/\./g,""); cent = "00"; }
+  inteiro = String(parseInt(inteiro || "0", 10)); cent = (cent + "00").slice(0,2);
+  return {inteiro: inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, "."), cent};
+}
+function dataBR(iso){ if (!iso) return ""; const [y,m,d] = iso.split("-"); return d + "/" + m; }
+
+/* ---------- dados ---------- */
+function exemplo(){ return !$("nome").value.trim() && !$("preco").value.trim() && !fotoOriginal; }
+function val(id){ const el = $(id); const v = el.value.trim(); return v || (exemplo() ? el.placeholder : ""); }
+function dados(){
+  const info = val("info").split(/\n|;/).map(s => s.trim()).filter(Boolean).slice(0,3);
+  const formato = $("formato").value;
+  return {
+    exemplo: exemplo(),
+    nome: val("nome") || "Nome do produto",
+    fab: val("fabricante"),
+    info, preco: parsePreco(val("preco")) || {inteiro:"0", cent:"00"},
+    formato, precoDe: formato === "depor" ? parsePreco(val("precoDe")) : null,
+    aPartir: formato === "partir",
+    pag: val("pagamento"),
+    validade: dataBR($("validade").value),
+    whats: $("whats").value.trim() || "(14) 9 9799-3127",
+    end: $("endereco").value.trim() || "Av. Arminda Victória Furlani Bernardi, 315 – Jaú/SP"
+  };
+}
+
+/* ---------- recorte da foto ---------- */
+function processar(img, tirarFundo, tirarMiolo){
+  const max = 1600, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.max(1, Math.round(img.naturalWidth*k)), h = Math.max(1, Math.round(img.naturalHeight*k));
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const x = c.getContext("2d", {willReadFrequently:true}); x.drawImage(img, 0, 0, w, h);
+  const im = x.getImageData(0,0,w,h), p = im.data, tol = 26;
+  const branco = i => p[i+3] < 20 || (255 - Math.min(p[i], p[i+1], p[i+2])) <= tol;
+  if (tirarFundo || tirarMiolo){
+    const fora = new Uint8Array(w*h);
+    if (tirarMiolo){
+      for (let j = 0; j < w*h; j++) if (branco(j*4)) fora[j] = 1;
+    } else {
+      const fila = new Int32Array(w*h); let ini = 0, fim = 0;
+      const add = j => { if (!fora[j] && branco(j*4)){ fora[j] = 1; fila[fim++] = j; } };
+      for (let i = 0; i < w; i++){ add(i); add((h-1)*w + i); }
+      for (let i = 0; i < h; i++){ add(i*w); add(i*w + w - 1); }
+      while (ini < fim){ const j = fila[ini++], cx = j % w, cy = (j / w) | 0;
+        if (cx > 0) add(j-1); if (cx < w-1) add(j+1); if (cy > 0) add(j-w); if (cy < h-1) add(j+w); }
+    }
+    for (let j = 0; j < w*h; j++){
+      if (fora[j]){ p[j*4+3] = 0; continue; }
+      const cx = j % w, cy = (j / w) | 0;
+      const viz = (cx>0 && fora[j-1]) || (cx<w-1 && fora[j+1]) || (cy>0 && fora[j-w]) || (cy<h-1 && fora[j+w]);
+      if (viz && (255 - Math.min(p[j*4], p[j*4+1], p[j*4+2])) <= tol*2.2) p[j*4+3] = Math.min(p[j*4+3], 110);
+    }
+    x.putImageData(im, 0, 0);
+  }
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) if (p[(yy*w+xx)*4+3] > 16){ if (xx<x0)x0=xx; if (xx>x1)x1=xx; if (yy<y0)y0=yy; if (yy>y1)y1=yy; }
+  if (x1 < 0) return c;
+  const o = document.createElement("canvas"); o.width = x1-x0+1; o.height = y1-y0+1;
+  o.getContext("2d").drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return o;
+}
+function carregarFoto(src){
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+function refazerRecorte(){
+  if (!fotoOriginal) return;
+  produto = processar(fotoOriginal, $("tirarFundo").checked, $("tirarMiolo").checked);
+  $("thumb").src = produto.toDataURL("image/png"); $("thumb").hidden = false;
+  desenhar();
+}
+
+/* ---------- peças comuns ---------- */
+function logo(ctx, x, yCentro, q, corQuad, corM, corTexto, tamTexto){
+  rr(ctx, x, yCentro - q/2, q, q, q*0.25); ctx.fillStyle = corQuad; ctx.fill();
+  ctx.fillStyle = corM; ctx.font = font(900, q*0.8); ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; spacing(ctx, 0);
+  ctx.fillText("m", x + q/2, yCentro + q*0.22);
+  ctx.textAlign = "left"; ctx.fillStyle = corTexto; ctx.font = font(900, tamTexto); spacing(ctx, -tamTexto*0.04);
+  ctx.fillText("mãos à obra", x + q + q*0.22, yCentro + tamTexto*0.34); spacing(ctx, 0);
+  ctx.font = font(900, tamTexto); return q + q*0.22 + ctx.measureText("mãos à obra").width;
+}
+function medirPreco(ctx, d, size){
+  ctx.font = font(800, size*0.27); const a = ctx.measureText("R$").width;
+  ctx.font = font(900, size); spacing(ctx, -size*0.045); const b = ctx.measureText(d.preco.inteiro).width; spacing(ctx, 0);
+  ctx.font = font(900, size*0.42); const c = ctx.measureText("," + d.preco.cent).width;
+  return a + size*0.04 + b + c;
+}
+function preco(ctx, d, x, y, maxW, start, cor){
+  let size = start; while (size > 50 && medirPreco(ctx, d, size) > maxW) size -= 4;
+  ctx.fillStyle = cor; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = font(800, size*0.27); ctx.fillText("R$", x, y + size*0.36); let cx = x + ctx.measureText("R$").width + size*0.04;
+  ctx.font = font(900, size); spacing(ctx, -size*0.045); ctx.fillText(d.preco.inteiro, cx, y + size*0.74); cx += ctx.measureText(d.preco.inteiro).width; spacing(ctx, 0);
+  ctx.font = font(900, size*0.42); ctx.fillText("," + d.preco.cent, cx, y + size*0.36);
+  return size*0.78;
+}
+const ROTULOS = {por:"POR APENAS", partir:"A PARTIR DE", hoje:"SÓ HOJE", especial:"PREÇO ESPECIAL", depor:"POR"};
+function rotulo(ctx, d, x, y, maxW){
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  if (d.formato === "depor" && d.precoDe){
+    const velho = "R$ " + d.precoDe.inteiro + "," + d.precoDe.cent;
+    let s = 28; ctx.font = font(800, s); spacing(ctx, 1);
+    while (s > 18 && ctx.measureText("DE " + velho + "  POR").width > maxW){ s -= 1; ctx.font = font(800, s); }
+    ctx.fillStyle = C.ink; ctx.fillText("DE ", x, y); let cx = x + ctx.measureText("DE ").width;
+    ctx.fillStyle = C.red; ctx.fillText(velho, cx, y); const wv = ctx.measureText(velho).width;
+    ctx.strokeStyle = C.red; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - 2, y - s*0.32); ctx.lineTo(cx + wv + 2, y - s*0.32); ctx.stroke();
+    cx += wv; ctx.fillStyle = C.blue; ctx.fillText("  POR", cx, y); spacing(ctx, 0); return;
+  }
+  ctx.fillStyle = C.blue; ctx.font = font(800, 26); spacing(ctx, 4);
+  ctx.fillText(ROTULOS[d.formato] || ROTULOS.por, x, y); spacing(ctx, 0);
+}
+function etiqueta(ctx, d, cx, cy0, w, rot, precoIni, anim){
+  // calcula altura
+  const pad = 30, inner = w - pad*2;
+  ctx.font = font(700, 26); const pagLinhas = d.pag ? wrap(ctx, d.pag, inner).slice(0,2) : [];
+  const sizeMax = precoIni; let s = sizeMax; while (s > 50 && medirPreco(ctx, d, s) > inner) s -= 4;
+  const h = 92 + 30 + 34 + s*0.78 + (pagLinhas.length ? 16 + pagLinhas.length*32 : 0) + 34;
+  const sc = anim ? anim.scale : 1, dy = anim ? anim.dy : 0, ex = anim ? anim.rot : 0;
+  ctx.save();
+  ctx.translate(cx, cy0 + 40 + dy); ctx.rotate((rot + ex) * Math.PI/180); ctx.scale(sc, sc); ctx.translate(-w/2, -40);
+  rr(ctx, 0, 16, w, h, 30); ctx.fillStyle = C.yelD; ctx.fill();
+  rr(ctx, 0, 0, w, h, 30); ctx.fillStyle = C.yel; ctx.fill();
+  ctx.beginPath(); ctx.arc(w/2, 52, 20, 0, Math.PI*2); ctx.fillStyle = C.off; ctx.fill();
+  rotulo(ctx, d, pad, 92 + 22, inner);
+  ctx.setLineDash([12, 8]); ctx.lineWidth = 4; ctx.strokeStyle = C.blue; ctx.beginPath(); ctx.moveTo(pad, 92+48); ctx.lineTo(w - pad, 92+48); ctx.stroke(); ctx.setLineDash([]);
+  const ph = preco(ctx, d, pad, 92 + 64, inner, precoIni, C.blue);
+  let y = 92 + 64 + ph;
+  if (pagLinhas.length){ ctx.fillStyle = C.ink; ctx.font = font(700, 26); y += 16; for (const l of pagLinhas){ ctx.fillText(l, pad, y + 24); y += 32; } }
+  ctx.restore();
+  return h;
+}
+
+/* ---------- FEED 1080x1350 ---------- */
+function desenharFeed(ctx, d){
+  const W = 1080, H = 1350, top = 150, foot = 130;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = C.off; ctx.fillRect(0,0,W,H);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, top, W, H - top - foot); ctx.clip();
+  ctx.beginPath(); ctx.ellipse(540, H - foot + 40, 640, 320, 0, 0, Math.PI*2); ctx.fillStyle = C.sand; ctx.fill(); ctx.restore();
+  ctx.fillStyle = C.blue; ctx.fillRect(0, 0, W, top);
+  logo(ctx, 56, 75, 72, C.yel, C.blue, C.white, 48);
+  ctx.fillStyle = C.yel; ctx.font = font(900, 34); spacing(ctx, 6); ctx.textAlign = "right";
+  ctx.fillText("OFERTA", W - 56, 87); spacing(ctx, 0); ctx.textAlign = "left";
+
+  // bloco de texto
+  const tagW = 420, textoMax = 1080 - 56 - 50 - tagW - 30;
+  let y = top + 70;
+  if (d.fab){ ctx.fillStyle = C.red; ctx.font = font(800, 28); spacing(ctx, 6); ctx.fillText(d.fab.toUpperCase(), 56, y + 22); spacing(ctx, 0); y += 44; }
+  const n = fit(ctx, d.nome, 900, textoMax, 3, 88, 46);
+  ctx.fillStyle = C.blue; ctx.font = font(900, n.size); spacing(ctx, -n.size*0.04);
+  n.lines.forEach((l,i) => ctx.fillText(l, 56, y + n.size*0.82 + i*n.size*0.95)); spacing(ctx, 0);
+  y += n.lines.length*n.size*0.95 + 14;
+  ctx.fillStyle = C.grey; ctx.font = font(600, 28);
+  for (const l of d.info){ for (const s of wrap(ctx, l, textoMax).slice(0,2)){ ctx.fillText(s, 56, y + 26); y += 36; } }
+  const textoFim = y;
+
+  // etiqueta (medida antes) e foto
+  const hTag = (function(){ const t = document.createElement("canvas").getContext("2d"); return etiquetaAltura(t, d, tagW, 168); })();
+  const tagTop = top + 60;
+  const fotoTop = Math.max(textoFim, tagTop + hTag + 10) + 24;
+  const fotoBot = H - foot - (d.validade ? 64 : 30);
+  if (produto) desenharFoto(ctx, produto, 40, fotoTop, W - 80, fotoBot - fotoTop, "bottom"); else semFoto(ctx, 120, fotoTop + 10, W - 240, fotoBot - fotoTop - 20, 1);
+  etiqueta(ctx, d, W - 50 - tagW/2, tagTop, tagW, 5, 168, null);
+  if (d.validade){ ctx.fillStyle = C.ink; ctx.font = font(700, 24); ctx.textAlign = "left"; ctx.fillText("Oferta válida até " + d.validade + " ou enquanto durar o estoque.", 56, H - foot - 26); }
+
+  ctx.fillStyle = C.ink; ctx.fillRect(0, H - foot, W, foot);
+  ctx.fillStyle = C.white; ctx.font = font(700, 32); ctx.textAlign = "left"; ctx.fillText("Peça pelo WhatsApp", 56, H - foot + 76);
+  ctx.fillStyle = C.yel; ctx.font = font(900, 44); ctx.textAlign = "right"; spacing(ctx, -1); ctx.fillText(d.whats, W - 56, H - foot + 80); spacing(ctx, 0); ctx.textAlign = "left";
+}
+function etiquetaAltura(ctx, d, w, precoIni){
+  const inner = w - 60; ctx.font = font(700, 26);
+  const pl = d.pag ? wrap(ctx, d.pag, inner).slice(0,2).length : 0;
+  let s = precoIni; while (s > 50 && medirPreco(ctx, d, s) > inner) s -= 4;
+  return 92 + 30 + 34 + s*0.78 + (pl ? 16 + pl*32 : 0) + 34 + 16;
+}
+function semFoto(ctx, x, y, w, h, alpha){
+  if (h < 80) return;
+  ctx.save(); ctx.globalAlpha = alpha;
+  rr(ctx, x, y, w, h, 28); ctx.fillStyle = "rgba(24,62,159,0.06)"; ctx.fill();
+  ctx.setLineDash([16, 12]); ctx.lineWidth = 4; ctx.strokeStyle = "rgba(24,62,159,0.35)"; ctx.stroke(); ctx.setLineDash([]);
+  const cx = x + w/2, cy = y + h/2;
+  ctx.strokeStyle = "rgba(24,62,159,0.55)"; ctx.lineWidth = 8; rr(ctx, cx - 70, cy - 70, 140, 100, 18); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy - 20, 30, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = "rgba(24,62,159,0.7)"; ctx.font = font(700, 32); ctx.textAlign = "center"; ctx.fillText("Foto do produto", cx, cy + 80); ctx.textAlign = "left";
+  ctx.restore();
+}
+function desenharFoto(ctx, img, x, y, w, h, alinhar, alpha, dy){
+  if (h < 40) h = 40;
+  const k = Math.min(w / img.width, h / img.height, 3.2);
+  const dw = img.width*k, dh = img.height*k;
+  const dx = x + (w - dw)/2, ddy = alinhar === "bottom" ? y + h - dh : y + (h - dh)/2;
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha; ctx.drawImage(img, dx, ddy + (dy||0), dw, dh); ctx.restore();
+}
+
+/* ---------- STORY 1080x1920 (t = segundos; null = estático) ---------- */
+function desenharStory(ctx, d, t){
+  const W = 1080, H = 1920, A = t == null;
+  const fase = (ini, dur) => A ? 1 : clamp((t - ini)/dur, 0, 1);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = C.off; ctx.fillRect(0,0,W,H);
+  ctx.beginPath(); ctx.ellipse(540, 1480, 760, 400, 0, 0, Math.PI*2); ctx.fillStyle = C.sand; ctx.fill();
+  ctx.fillStyle = C.blue; ctx.fillRect(0, 0, W, 350);
+  // logo centralizado
+  const m = document.createElement("canvas").getContext("2d"); m.font = font(900, 58);
+  const largura = 84 + 84*0.22 + m.measureText("mãos à obra").width;
+  logo(ctx, (W - largura)/2, 215, 84, C.yel, C.blue, C.white, 58);
+  ctx.fillStyle = C.yel; ctx.font = font(900, 32); spacing(ctx, 8); ctx.textAlign = "center"; ctx.fillText("OFERTA", W/2 + 4, 312); spacing(ctx, 0);
+
+  // texto
+  const pT = easeOut(fase(0.5, 0.6));
+  ctx.save(); ctx.globalAlpha = pT; ctx.translate(0, (1 - pT)*30);
+  let y = 410; ctx.textAlign = "center";
+  if (d.fab){ ctx.fillStyle = C.red; ctx.font = font(800, 32); spacing(ctx, 7); ctx.fillText(d.fab.toUpperCase(), W/2 + 3, y + 26); spacing(ctx, 0); y += 52; }
+  const n = fit(ctx, d.nome, 900, 960, 2, 100, 56);
+  ctx.fillStyle = C.blue; ctx.font = font(900, n.size); spacing(ctx, -n.size*0.04);
+  n.lines.forEach((l,i) => ctx.fillText(l, W/2, y + n.size*0.82 + i*n.size*0.95)); spacing(ctx, 0);
+  y += n.lines.length*n.size*0.95 + 16;
+  if (d.info.length){ ctx.fillStyle = C.grey; ctx.font = font(600, 32); const linha = d.info.join(" · "); for (const s of wrap(ctx, linha, 940).slice(0,2)){ ctx.fillText(s, W/2, y + 30); y += 42; } }
+  ctx.restore(); ctx.textAlign = "left";
+  const textoFim = y + 20;
+
+  // foto
+  const alto = produto && produto.height > produto.width*1.1;
+  const tagW = 520, tagTop = alto ? Math.max(textoFim + 120, 900) : 1120;
+  const pF = easeOut(fase(0.2, 0.8));
+  if (!produto) semFoto(ctx, 120, textoFim + 10, W - 240, tagTop - textoFim - 20, pF);
+  if (produto){ if (alto) desenharFoto(ctx, produto, 40, textoFim, 600, 1470 - textoFim, "bottom", pF, (1 - pF)*140); else desenharFoto(ctx, produto, 60, textoFim, W - 120, 1420 - textoFim, "bottom", pF, (1 - pF)*140); }
+
+  // etiqueta
+  let anim = null;
+  if (!A){
+    const p = fase(1.2, 0.7), tt = Math.max(0, t - 1.2);
+    const balanço = t > 1.2 ? 10*Math.exp(-2.6*tt)*Math.cos(7*tt) : 0;
+    const pulso = t > 3.2 ? 0.025*Math.sin((t - 3.2)*Math.PI*2/1.3) : 0;
+    anim = {dy: (1 - easeBack(p))*-900, rot: balanço, scale: 1 + pulso};
+    if (t < 1.2) anim.dy = -2000;
+  }
+  etiqueta(ctx, d, W - 60 - tagW/2, tagTop, tagW, -4, 156, anim);
+
+  // validade + rodapé
+  const pR = easeOut(fase(2.0, 0.5));
+  ctx.save(); ctx.globalAlpha = pR;
+  if (d.validade){ ctx.fillStyle = C.ink; ctx.font = font(700, 28); ctx.textAlign = "center"; ctx.fillText("Oferta válida até " + d.validade + " ou enquanto durar o estoque.", W/2, 1508); }
+  ctx.restore();
+  ctx.fillStyle = C.ink; ctx.fillRect(0, 1550, W, 370);
+  ctx.save(); ctx.globalAlpha = pR; ctx.textAlign = "center";
+  ctx.fillStyle = C.white; ctx.font = font(700, 34); ctx.fillText("Peça pelo WhatsApp", W/2, 1622);
+  ctx.fillStyle = C.yel; ctx.font = font(900, 60); spacing(ctx, -1); ctx.fillText(d.whats, W/2, 1698); spacing(ctx, 0);
+  ctx.restore(); ctx.textAlign = "left";
+}
+
+/* ---------- legenda ---------- */
+function legenda(d, v){
+  const nomeFab = d.nome + (d.fab ? " " + d.fab : "");
+  const precoTxt = "R$ " + d.preco.inteiro + "," + d.preco.cent;
+  const PRE = {por:"Por apenas", partir:"A partir de", hoje:"Só hoje:", especial:"Preço especial:"};
+  const prefixo = d.formato === "depor" && d.precoDe ? "De R$ " + d.precoDe.inteiro + "," + d.precoDe.cent + " por" : (PRE[d.formato] || PRE.por);
+  const val = d.validade ? "Oferta válida até " + d.validade + " ou enquanto durar o estoque." : "Oferta válida enquanto durar o estoque.";
+  const tags = ["#maosaobrajau", "#jau", "#jausp", "#materialdeconstrucao", "#obra", "#reforma"];
+  if (d.fab) tags.push("#" + tag(d.fab));
+  const tn = tag(d.nome); if (tn && tn.length <= 30) tags.push("#" + tn);
+  const info = d.info.length ? d.info.join(" · ") + "\n" : "";
+  if (v === 1) return "Tá precisando de " + d.nome.toLowerCase() + "? 👷\n\n" + nomeFab + ": " + prefixo.toLowerCase() + " " + precoTxt + (d.pag ? ", " + d.pag : "") + ".\n" + info + val + "\n\nChama no WhatsApp " + d.whats + " que a gente separa pra você. Também entregamos na sua obra! 🚚\n\n📍 " + d.end + "\n\n" + tags.join(" ");
+  if (v === 2) return nomeFab + ": " + prefixo.toLowerCase() + " " + precoTxt + " 💰\n" + (d.pag ? d.pag.charAt(0).toUpperCase() + d.pag.slice(1) + "\n" : "") + val + "\n\n📲 " + d.whats + "\n📍 Mãos à Obra · Jaú/SP\n\n" + tags.join(" ");
+  return "OFERTA NA MÃOS À OBRA 🔥\n\n" + nomeFab + "\n" + info + "\n" + prefixo + " " + precoTxt + (d.pag ? "\n" + d.pag.charAt(0).toUpperCase() + d.pag.slice(1) : "") + "\n" + val + "\n\nEntregamos na sua obra 🚚\nPeça pelo WhatsApp: " + d.whats + "\n📍 " + d.end + "\n\n" + tags.join(" ");
+}
+
+/* ---------- desenhar tudo ---------- */
+let pend = 0;
+function desenhar(){
+  cancelAnimationFrame(pend);
+  pend = requestAnimationFrame(() => {
+    const d = dados();
+    $("badgeEx").hidden = !d.exemplo; $("exemploNota").hidden = !d.exemplo;
+    const q = [$("nome").value.trim(), $("fabricante").value.trim()].filter(Boolean).join(" ");
+    $("buscar").href = "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent((q || "produto material de construção") + " fundo branco");
+    $("precoDeBox").hidden = d.formato !== "depor"; $("precoRot").textContent = d.formato === "depor" ? "Preço novo (Por) *" : "Preço (R$) *";
+    desenharFeed(cFeed.getContext("2d"), d);
+    if (!gravando) desenharStory(cStory.getContext("2d"), d, null);
+    if (!legendaEditada) $("legenda").value = legenda(d, versaoLegenda);
+  });
+}
+let legendaEditada = false;
+$("legenda").addEventListener("input", () => { legendaEditada = true; });
+
+/* ---------- downloads ---------- */
+const dlPromise = (window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, 3200); }
+async function salvar(nome, blob){
+  const dl = await dlPromise;
+  if (dl){
+    try { await dl.save({filename: nome, data: blob}); toast("Arquivo salvo: " + nome); return; }
+    catch (e){ if (e && e.code === "declined"){ toast("Download cancelado."); return; } if (e && e.code === "rate_limited"){ toast("Aguarde um instante e tente de novo."); return; } }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const nomeArq = suf => (slug(dados().nome) || "oferta") + "-" + suf;
+function blobDe(canvas){ return new Promise(r => canvas.toBlob(r, "image/png")); }
+function faltando(){
+  const f = [];
+  if (!fotoOriginal) f.push("a foto"); if (!$("nome").value.trim()) f.push("o nome"); if (!$("preco").value.trim()) f.push("o preço");
+  if ($("formato").value === "depor" && !$("precoDe").value.trim()) f.push("o preço antigo");
+  if (!f.length) return false;
+  toast("Falta preencher " + f.join(", ").replace(/, ([^,]*)$/, " e $1") + "."); return true;
+}
+$("bFeed").addEventListener("click", async () => { if (faltando()) return; salvarOferta(true); salvar(nomeArq("feed.png"), await pngComDados(await blobDe(cFeed), estado())); });
+$("bStory").addEventListener("click", async () => {
+  if (faltando()) return;
+  if (!$("vStory").hidden && videoBlob){ salvar(nomeArq("story." + videoExt), videoBlob); return; }
+  salvarOferta(true); salvar(nomeArq("story.png"), await pngComDados(await blobDe(cStory), estado()));
+});
+
+/* ---------- vídeo ---------- */
+let gravando = false, videoBlob = null, videoExt = "mp4";
+$("bVideo").addEventListener("click", async () => {
+  if (faltando()) return;
+  const st = $("vStatus"); st.className = "status";
+  if (!window.MediaRecorder || !cStory.captureStream){ st.textContent = "Este navegador não grava vídeo. Use o Chrome ou o Safari atualizados."; st.className = "status err"; return; }
+  const tipos = ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
+  const tipo = tipos.find(t => MediaRecorder.isTypeSupported(t));
+  if (!tipo){ st.textContent = "Este navegador não grava vídeo. Use o Chrome ou o Safari atualizados."; st.className = "status err"; return; }
+  videoExt = tipo.startsWith("video/mp4") ? "mp4" : "webm";
+  gravando = true; $("bVideo").disabled = true; $("bStory").disabled = true;
+  $("vStory").hidden = true; cStory.hidden = false;
+  const ctx = cStory.getContext("2d"), d = dados(), dur = 7;
+  desenharStory(ctx, d, 0);
+  const stream = cStory.captureStream(30);
+  const rec = new MediaRecorder(stream, {mimeType: tipo, videoBitsPerSecond: 8000000});
+  const partes = []; rec.ondataavailable = e => { if (e.data && e.data.size) partes.push(e.data); };
+  const fim = new Promise(r => { rec.onstop = r; });
+  rec.start(250);
+  const t0 = performance.now();
+  await new Promise(res => {
+    function quadro(){
+      const t = (performance.now() - t0)/1000;
+      desenharStory(ctx, d, Math.min(t, dur));
+      st.textContent = "Gravando vídeo… " + Math.min(dur, Math.floor(t)) + " de " + dur + " s. Mantenha esta página aberta.";
+      if (t < dur) requestAnimationFrame(quadro); else res();
+    }
+    requestAnimationFrame(quadro);
+  });
+  rec.stop(); await fim; stream.getTracks().forEach(tr => tr.stop());
+  videoBlob = new Blob(partes, {type: tipo.split(";")[0]});
+  const v = $("vStory"); v.src = URL.createObjectURL(videoBlob); v.hidden = false; cStory.hidden = true; v.play().catch(() => {});
+  gravando = false; $("bVideo").disabled = false; $("bStory").disabled = false;
+  $("bStory").textContent = "Baixar vídeo do Story";
+  st.className = "status ok";
+  st.textContent = videoExt === "mp4" ? "Vídeo pronto (MP4, 7 s)." : "Vídeo pronto em WEBM. O Instagram não aceita WEBM: grave pelo Chrome atualizado ou Safari para sair em MP4.";
+  if (videoExt === "mp4") salvar(nomeArq("story.mp4"), videoBlob);
+});
+function voltarImagem(){
+  if ($("vStory").hidden) return;
+  $("vStory").hidden = true; cStory.hidden = false; $("vStory").pause();
+  $("bStory").textContent = "Baixar imagem do Story"; $("vStatus").textContent = "";
+}
+
+/* ---------- legenda: botões ---------- */
+$("bCopiar").addEventListener("click", async () => {
+  const ta = $("legenda");
+  try { await navigator.clipboard.writeText(ta.value); toast("Legenda copiada."); }
+  catch (e){ ta.focus(); ta.select(); toast("Selecionei o texto. Use Copiar do seu teclado."); }
+});
+$("bOutra").addEventListener("click", () => { versaoLegenda = (versaoLegenda + 1) % 3; legendaEditada = false; desenhar(); });
+$("bTxt").addEventListener("click", () => salvar(nomeArq("legenda.txt"), new Blob([$("legenda").value], {type: "text/plain"})));
+
+/* ---------- entradas ---------- */
+["nome","fabricante","info","preco","precoDe","pagamento","validade","formato","whats","endereco"].forEach(id => {
+  $(id).addEventListener("input", () => { legendaEditada = false; voltarImagem(); desenhar(); guardarLoja(); });
+});
+["tirarFundo","tirarMiolo"].forEach(id => $(id).addEventListener("change", () => { voltarImagem(); refazerRecorte(); }));
+async function usarArquivo(f){
+  if (!f || !f.type.startsWith("image/")){ toast("Escolha um arquivo de imagem (JPG ou PNG)."); return; }
+  if (f.type === "image/png"){ try { const e = lerDadosPng(new Uint8Array(await f.arrayBuffer())); if (e){ await aplicarEstado(e); toast("Oferta carregada. Altere o que quiser."); return; } } catch (err) {} }
+  const url = URL.createObjectURL(f);
+  try { fotoOriginal = await carregarFoto(url); $("fotoInfo").textContent = f.name || "Imagem colada"; voltarImagem(); refazerRecorte(); }
+  catch (e){ toast("Não consegui abrir essa imagem. Tente outra foto."); }
+}
+$("foto").addEventListener("change", e => usarArquivo(e.target.files[0]));
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => usarArquivo(e.dataTransfer.files[0]));
+document.addEventListener("paste", e => { const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.type.startsWith("image/")); if (it) usarArquivo(it.getAsFile()); });
+
+/* ---------- estado da oferta ---------- */
+const CAMPOS = ["nome","fabricante","info","formato","precoDe","preco","pagamento","validade"];
+function estado(){
+  const e = {v:1}; CAMPOS.forEach(id => { e[id] = $(id).value; });
+  e.foto = produto ? produto.toDataURL("image/png") : null; return e;
+}
+async function aplicarEstado(e){
+  CAMPOS.forEach(id => { if (e[id] != null) $(id).value = e[id]; });
+  legendaEditada = false; voltarImagem();
+  if (e.foto){
+    fotoOriginal = await carregarFoto(e.foto);
+    $("tirarFundo").checked = false; $("tirarMiolo").checked = false;
+    $("fotoInfo").textContent = "Foto da oferta salva"; refazerRecorte();
+  } else desenhar();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+/* ---------- dados guardados dentro do PNG ---------- */
+const CHAVE = "maosaobra-oferta";
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b){ let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function paraB64(str){ const by = new TextEncoder().encode(str); let bin = ""; for (let i = 0; i < by.length; i += 0x8000) bin += String.fromCharCode.apply(null, by.subarray(i, i + 0x8000)); return btoa(bin); }
+function deB64(s){ const bin = atob(s); const by = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) by[i] = bin.charCodeAt(i); return new TextDecoder().decode(by); }
+async function pngComDados(blob, obj){
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const txt = CHAVE + "\0" + paraB64(JSON.stringify(obj));
+  const data = new Uint8Array(txt.length); for (let i = 0; i < txt.length; i++) data[i] = txt.charCodeAt(i);
+  const ch = new Uint8Array(12 + data.length), dv = new DataView(ch.buffer);
+  dv.setUint32(0, data.length); ch.set([116, 69, 88, 116], 4); ch.set(data, 8);
+  dv.setUint32(8 + data.length, crc32(ch.subarray(4, 8 + data.length)));
+  const fim = buf.length - 12, out = new Uint8Array(buf.length + ch.length);
+  out.set(buf.subarray(0, fim), 0); out.set(ch, fim); out.set(buf.subarray(fim), fim + ch.length);
+  return new Blob([out], {type: "image/png"});
+}
+function lerDadosPng(buf){
+  if (buf.length < 8 || buf[0] !== 137 || buf[1] !== 80 || buf[2] !== 78 || buf[3] !== 71) return null;
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength); let p = 8;
+  while (p + 12 <= buf.length){
+    const len = dv.getUint32(p), tipo = String.fromCharCode(buf[p+4], buf[p+5], buf[p+6], buf[p+7]);
+    if (tipo === "tEXt"){
+      const d = buf.subarray(p + 8, p + 8 + len); const z = d.indexOf(0);
+      const chave = String.fromCharCode.apply(null, d.subarray(0, z));
+      if (chave === CHAVE){ let t = ""; for (let i = z + 1; i < d.length; i += 0x8000) t += String.fromCharCode.apply(null, d.subarray(i, Math.min(d.length, i + 0x8000))); return JSON.parse(deB64(t)); }
+    }
+    if (tipo === "IEND") break; p += 12 + len;
+  }
+  return null;
+}
+$("bAbrir").addEventListener("click", () => $("abrirArq").click());
+$("abrirArq").addEventListener("change", async ev => {
+  const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
+  try { const e = lerDadosPng(new Uint8Array(await f.arrayBuffer()));
+    if (!e){ toast("Essa imagem não tem os dados da oferta. Use uma imagem baixada desta ferramenta (a do Instagram não serve)."); return; }
+    await aplicarEstado(e); toast("Oferta carregada. Altere o que quiser.");
+  } catch (err){ toast("Não consegui ler essa imagem."); }
+});
+
+/* ---------- ofertas salvas (IndexedDB deste navegador) ---------- */
+let dbP = null;
+function abrirDB(){
+  if (!dbP) dbP = new Promise((res, rej) => {
+    try { const r = indexedDB.open("maosaobra-ofertas", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("ofertas", {keyPath: "id"});
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }
+    catch (e){ rej(e); }
+  });
+  return dbP;
+}
+async function loja(modo, fn){
+  const db = await abrirDB();
+  return new Promise((res, rej) => { const t = db.transaction("ofertas", modo); const req = fn(t.objectStore("ofertas")); t.oncomplete = () => res(req && req.result); t.onerror = () => rej(t.error); });
+}
+function chaveOferta(e){ return [e.nome, e.fabricante, e.info, e.formato, e.precoDe, e.preco, e.pagamento, e.validade, e.foto ? e.foto.length : 0].join("|"); }
+function miniatura(){ const c = document.createElement("canvas"); c.width = 240; c.height = 300; c.getContext("2d").drawImage(cFeed, 0, 0, 240, 300); return c.toDataURL("image/jpeg", 0.8); }
+async function salvarOferta(silencioso){
+  if (!produto || !$("nome").value.trim() || !$("preco").value.trim()){ if (!silencioso) toast("Preencha a foto, o nome e o preço antes de salvar."); return; }
+  try {
+    const e = estado(), chave = chaveOferta(e);
+    const todas = await loja("readonly", st => st.getAll()) || [];
+    const igual = todas.find(r => r.chave === chave);
+    const reg = {id: igual ? igual.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), quando: Date.now(), chave, estado: e, thumb: miniatura()};
+    await loja("readwrite", st => st.put(reg));
+    const antigas = todas.filter(r => r.id !== reg.id).sort((a, b) => b.quando - a.quando).slice(79);
+    if (antigas.length) await loja("readwrite", st => { antigas.forEach(r => st.delete(r.id)); return null; });
+    listarOfertas(); if (!silencioso) toast("Oferta salva.");
+  } catch (err){ if (!silencioso) toast("Não foi possível salvar neste navegador. Baixe a imagem do feed: ela guarda a oferta."); }
+}
+function fmtData(ms){ const d = new Date(ms); const z = n => String(n).padStart(2, "0"); return z(d.getDate()) + "/" + z(d.getMonth() + 1) + " " + z(d.getHours()) + ":" + z(d.getMinutes()); }
+async function listarOfertas(){
+  const box = $("salvas");
+  let todas;
+  try { todas = (await loja("readonly", st => st.getAll()) || []).sort((a, b) => b.quando - a.quando); }
+  catch (err){ box.innerHTML = ""; const p = document.createElement("p"); p.className = "vazio"; p.textContent = "Este navegador não permite guardar ofertas. Use \"Abrir post já criado\" com uma imagem baixada da ferramenta."; box.append(p); return; }
+  box.innerHTML = "";
+  if (!todas.length){ const p = document.createElement("p"); p.className = "vazio"; p.textContent = "Nenhuma oferta salva ainda. Preencha os dados e clique em \"Salvar oferta\"."; box.append(p); return; }
+  for (const r of todas){
+    const e = r.estado, pr = parsePreco(e.preco);
+    const c = document.createElement("div"); c.className = "card";
+    const im = document.createElement("img"); im.src = r.thumb; im.alt = "Post de " + e.nome;
+    const b = document.createElement("b"); b.textContent = e.nome; b.title = e.nome;
+    const s = document.createElement("span"); s.textContent = (pr ? "R$ " + pr.inteiro + "," + pr.cent : "") + " · " + fmtData(r.quando);
+    const bt = document.createElement("div"); bt.className = "btns";
+    const usar = document.createElement("button"); usar.type = "button"; usar.className = "b1"; usar.textContent = "Usar";
+    usar.addEventListener("click", async () => { await aplicarEstado(e); toast("Oferta carregada. Altere o que quiser."); });
+    const del = document.createElement("button"); del.type = "button"; del.className = "b2"; del.textContent = "Excluir";
+    del.addEventListener("click", async () => {
+      if (!del.dataset.ok){ del.dataset.ok = "1"; del.textContent = "Confirmar"; setTimeout(() => { delete del.dataset.ok; del.textContent = "Excluir"; }, 3000); return; }
+      await loja("readwrite", st => st.delete(r.id)); listarOfertas(); toast("Oferta excluída.");
+    });
+    bt.append(usar, del); c.append(im, b, s, bt); box.append(c);
+  }
+}
+$("bSalvar").addEventListener("click", () => salvarOferta(false));
+
+/* ---------- dados da loja (lembrados neste navegador) ---------- */
+function guardarLoja(){ try { localStorage.setItem("mao-loja", JSON.stringify({w: $("whats").value, e: $("endereco").value})); } catch (e) {} }
+function lerLoja(){ try { return JSON.parse(localStorage.getItem("mao-loja") || "null"); } catch (e) { return null; } }
+
+/* ---------- início com exemplo ---------- */
+(async function iniciar(){
+  const loja = lerLoja();
+  $("whats").value = (loja && loja.w) || "(14) 9 9799-3127";
+  $("endereco").value = (loja && loja.e) || "Av. Arminda Victória Furlani Bernardi, 315 – Jaú/SP";
+  try { await Promise.race([document.fonts.load(font(900, 80)), new Promise(r => setTimeout(r, 2500))]); await document.fonts.load(font(800, 30)); await document.fonts.load(font(700, 30)); await document.fonts.load(font(600, 30)); } catch (e) {}
+  desenhar(); listarOfertas();
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", desenhar);
+})();
+})();
+</script>
+</body></html>
