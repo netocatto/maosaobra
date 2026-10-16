@@ -78,6 +78,12 @@ a.b2:hover{border-color:var(--ink)}
 .card button{flex:1 1 auto; min-height:38px; padding:8px 10px; font-size:13px}
 .vazio{color:var(--muted); font-size:14px; margin:0}
 .topo{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+details.ajuste{border:1px solid var(--line); border-radius:12px; padding:10px 12px; background:var(--field)}
+details.ajuste summary{font-weight:800; font-size:14px; cursor:pointer}
+.ajc{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+.rng{display:flex; flex-direction:column; gap:4px; font-weight:700; font-size:13px}
+.rng input{width:100%; accent-color:#183E9F; min-height:28px}
+canvas.editando{touch-action:none; outline:3px dashed var(--yellow); outline-offset:4px}
 .badge{display:inline-block; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--on-yellow); background:var(--yellow); border-radius:999px; padding:4px 10px}
 #legenda{min-height:260px; font-size:14.5px; line-height:1.5}
 .status{font-size:13.5px; font-weight:600; min-height:20px; margin:0}
@@ -171,12 +177,30 @@ a.b2:hover{border-color:var(--ink)}
           <div class="pv">
             <h3>Feed <em>1080 × 1350</em></h3>
             <canvas id="cFeed" width="1080" height="1350" aria-label="Prévia do post para o feed"></canvas>
+            <details class="ajuste" id="ajFeed">
+              <summary>Ajustar posição</summary>
+              <div class="ajc">
+                <p class="hint">Com este painel aberto, arraste a foto ou a etiqueta direto na prévia.</p>
+                <label class="rng" for="fsFeed">Tamanho da foto <input type="range" id="fsFeed" min="40" max="180" step="1" value="100"></label>
+                <label class="rng" for="tsFeed">Tamanho da etiqueta <input type="range" id="tsFeed" min="50" max="150" step="1" value="100"></label>
+                <div class="btns"><button type="button" class="b2" id="rsFeed">Voltar ao padrão</button></div>
+              </div>
+            </details>
             <div class="btns"><button type="button" class="b1" id="bFeed">Baixar imagem do feed</button></div>
           </div>
           <div class="pv">
             <h3>Story <em>1080 × 1920</em></h3>
             <canvas id="cStory" width="1080" height="1920" aria-label="Prévia do Story"></canvas>
             <video id="vStory" playsinline muted loop controls hidden></video>
+            <details class="ajuste" id="ajStory">
+              <summary>Ajustar posição</summary>
+              <div class="ajc">
+                <p class="hint">Com este painel aberto, arraste a foto ou a etiqueta direto na prévia.</p>
+                <label class="rng" for="fsStory">Tamanho da foto <input type="range" id="fsStory" min="40" max="180" step="1" value="100"></label>
+                <label class="rng" for="tsStory">Tamanho da etiqueta <input type="range" id="tsStory" min="50" max="150" step="1" value="100"></label>
+                <div class="btns"><button type="button" class="b2" id="rsStory">Voltar ao padrão</button></div>
+              </div>
+            </details>
             <div class="btns">
               <button type="button" class="b1" id="bStory">Baixar imagem do Story</button>
               <button type="button" class="b2" id="bVideo">Gerar vídeo do Story</button>
@@ -358,13 +382,13 @@ function rotulo(ctx, d, x, y, maxW){
   ctx.fillStyle = C.blue; ctx.font = font(800, 26); spacing(ctx, 4);
   ctx.fillText(ROTULOS[d.formato] || ROTULOS.por, x, y); spacing(ctx, 0);
 }
-function etiqueta(ctx, d, cx, cy0, w, rot, precoIni, anim){
-  // calcula altura
+function etiqueta(ctx, d, cx, cy0, w, rot, precoIni, anim, adj){
+  adj = adj || {dx:0, dy:0, s:1}; cx += adj.dx; cy0 += adj.dy;
   const pad = 30, inner = w - pad*2;
   ctx.font = font(700, 26); const pagLinhas = d.pag ? wrap(ctx, d.pag, inner).slice(0,2) : [];
   const sizeMax = precoIni; let s = sizeMax; while (s > 50 && medirPreco(ctx, d, s) > inner) s -= 4;
   const h = 92 + 30 + 34 + s*0.78 + (pagLinhas.length ? 16 + pagLinhas.length*32 : 0) + 34;
-  const sc = anim ? anim.scale : 1, dy = anim ? anim.dy : 0, ex = anim ? anim.rot : 0;
+  const sc = (anim ? anim.scale : 1) * adj.s, dy = anim ? anim.dy : 0, ex = anim ? anim.rot : 0;
   ctx.save();
   ctx.translate(cx, cy0 + 40 + dy); ctx.rotate((rot + ex) * Math.PI/180); ctx.scale(sc, sc); ctx.translate(-w/2, -40);
   rr(ctx, 0, 16, w, h, 30); ctx.fillStyle = C.yelD; ctx.fill();
@@ -376,8 +400,13 @@ function etiqueta(ctx, d, cx, cy0, w, rot, precoIni, anim){
   let y = 92 + 64 + ph;
   if (pagLinhas.length){ ctx.fillStyle = C.ink; ctx.font = font(700, 26); y += 16; for (const l of pagLinhas){ ctx.fillText(l, pad, y + 24); y += 32; } }
   ctx.restore();
-  return h;
+  return {x: cx - w/2*sc, y: cy0 + 40 + dy - 40*sc, w: w*sc, h: (h + 16)*sc};
 }
+
+/* ---------- ajustes manuais de posição ---------- */
+const PADRAO = () => ({foto: {dx:0, dy:0, s:1}, tag: {dx:0, dy:0, s:1}});
+let AJ = {feed: PADRAO(), story: PADRAO()};
+const HIT = {feed: {}, story: {}};
 
 /* ---------- FEED 1080x1350 ---------- */
 function desenharFeed(ctx, d){
@@ -408,8 +437,9 @@ function desenharFeed(ctx, d){
   const tagTop = top + 60;
   const fotoTop = Math.max(textoFim, tagTop + hTag + 10) + 24;
   const fotoBot = H - foot - (d.validade ? 64 : 30);
-  if (produto) desenharFoto(ctx, produto, 40, fotoTop, W - 80, fotoBot - fotoTop, "bottom"); else semFoto(ctx, 120, fotoTop + 10, W - 240, fotoBot - fotoTop - 20, 1);
-  etiqueta(ctx, d, W - 50 - tagW/2, tagTop, tagW, 5, 168, null);
+  HIT.feed.foto = produto ? desenharFoto(ctx, produto, 40, fotoTop, W - 80, fotoBot - fotoTop, "bottom", 1, 0, AJ.feed.foto) : null;
+  if (!produto) semFoto(ctx, 120, fotoTop + 10, W - 240, fotoBot - fotoTop - 20, 1);
+  HIT.feed.tag = etiqueta(ctx, d, W - 50 - tagW/2, tagTop, tagW, 5, 168, null, AJ.feed.tag);
   if (d.validade){ ctx.fillStyle = C.ink; ctx.font = font(700, 24); ctx.textAlign = "left"; ctx.fillText("Oferta válida até " + d.validade + " ou enquanto durar o estoque.", 56, H - foot - 26); }
 
   ctx.fillStyle = C.ink; ctx.fillRect(0, H - foot, W, foot);
@@ -433,12 +463,15 @@ function semFoto(ctx, x, y, w, h, alpha){
   ctx.fillStyle = "rgba(24,62,159,0.7)"; ctx.font = font(700, 32); ctx.textAlign = "center"; ctx.fillText("Foto do produto", cx, cy + 80); ctx.textAlign = "left";
   ctx.restore();
 }
-function desenharFoto(ctx, img, x, y, w, h, alinhar, alpha, dy){
-  if (h < 40) h = 40;
+function desenharFoto(ctx, img, x, y, w, h, alinhar, alpha, dy, adj){
+  if (h < 40) h = 40; adj = adj || {dx:0, dy:0, s:1};
   const k = Math.min(w / img.width, h / img.height, 3.2);
-  const dw = img.width*k, dh = img.height*k;
-  const dx = x + (w - dw)/2, ddy = alinhar === "bottom" ? y + h - dh : y + (h - dh)/2;
+  let dw = img.width*k, dh = img.height*k;
+  let dx = x + (w - dw)/2, ddy = alinhar === "bottom" ? y + h - dh : y + (h - dh)/2;
+  const cx = dx + dw/2, cy = ddy + dh/2; dw *= adj.s; dh *= adj.s;
+  dx = cx - dw/2 + adj.dx; ddy = cy - dh/2 + adj.dy;
   ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha; ctx.drawImage(img, dx, ddy + (dy||0), dw, dh); ctx.restore();
+  return {x: dx, y: ddy + (dy||0), w: dw, h: dh};
 }
 
 /* ---------- STORY 1080x1920 (t = segundos; null = estático) ---------- */
@@ -473,7 +506,8 @@ function desenharStory(ctx, d, t){
   const tagW = 520, tagTop = alto ? Math.max(textoFim + 120, 900) : 1120;
   const pF = easeOut(fase(0.2, 0.8));
   if (!produto) semFoto(ctx, 120, textoFim + 10, W - 240, tagTop - textoFim - 20, pF);
-  if (produto){ if (alto) desenharFoto(ctx, produto, 40, textoFim, 600, 1470 - textoFim, "bottom", pF, (1 - pF)*140); else desenharFoto(ctx, produto, 60, textoFim, W - 120, 1420 - textoFim, "bottom", pF, (1 - pF)*140); }
+  let rf = null;
+  if (produto){ if (alto) rf = desenharFoto(ctx, produto, 40, textoFim, 600, 1470 - textoFim, "bottom", pF, (1 - pF)*140, AJ.story.foto); else rf = desenharFoto(ctx, produto, 60, textoFim, W - 120, 1420 - textoFim, "bottom", pF, (1 - pF)*140, AJ.story.foto); }
 
   // etiqueta
   let anim = null;
@@ -484,7 +518,8 @@ function desenharStory(ctx, d, t){
     anim = {dy: (1 - easeBack(p))*-900, rot: balanço, scale: 1 + pulso};
     if (t < 1.2) anim.dy = -2000;
   }
-  etiqueta(ctx, d, W - 60 - tagW/2, tagTop, tagW, -4, 156, anim);
+  const rt = etiqueta(ctx, d, W - 60 - tagW/2, tagTop, tagW, -4, 156, anim, AJ.story.tag);
+  if (A){ HIT.story.foto = rf; HIT.story.tag = rt; }
 
   // validade + rodapé
   const pR = easeOut(fase(2.0, 0.5));
@@ -622,7 +657,7 @@ async function usarArquivo(f){
   if (!f || !f.type.startsWith("image/")){ toast("Escolha um arquivo de imagem (JPG ou PNG)."); return; }
   if (f.type === "image/png"){ try { const e = lerDadosPng(new Uint8Array(await f.arrayBuffer())); if (e){ await aplicarEstado(e); toast("Oferta carregada. Altere o que quiser."); return; } } catch (err) {} }
   const url = URL.createObjectURL(f);
-  try { fotoOriginal = await carregarFoto(url); $("fotoInfo").textContent = f.name || "Imagem colada"; voltarImagem(); refazerRecorte(); }
+  try { fotoOriginal = await carregarFoto(url); $("fotoInfo").textContent = f.name || "Imagem colada"; AJ.feed.foto = PADRAO().foto; AJ.story.foto = PADRAO().foto; sincronizarAjustes(); voltarImagem(); refazerRecorte(); }
   catch (e){ toast("Não consegui abrir essa imagem. Tente outra foto."); }
 }
 $("foto").addEventListener("change", e => usarArquivo(e.target.files[0]));
@@ -632,15 +667,51 @@ const drop = $("drop");
 drop.addEventListener("drop", e => usarArquivo(e.dataTransfer.files[0]));
 document.addEventListener("paste", e => { const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.type.startsWith("image/")); if (it) usarArquivo(it.getAsFile()); });
 
+/* ---------- arrastar foto e etiqueta ---------- */
+function pontoCanvas(cv, ev){ const r = cv.getBoundingClientRect(); return {x: (ev.clientX - r.left)*cv.width/r.width, y: (ev.clientY - r.top)*cv.height/r.height}; }
+function dentro(p, b){ return !!b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h; }
+function sincronizarAjustes(){
+  [["Feed","feed"],["Story","story"]].forEach(([Q, q]) => { $("fs" + Q).value = Math.round(AJ[q].foto.s*100); $("ts" + Q).value = Math.round(AJ[q].tag.s*100); });
+}
+function ligarArraste(cv, q, Q){
+  const det = $("aj" + Q); let arr = null;
+  cv.addEventListener("pointerdown", ev => {
+    if (!det.open || gravando) return;
+    const p = pontoCanvas(cv, ev), h = HIT[q];
+    const alvo = dentro(p, h.tag) ? "tag" : (dentro(p, h.foto) ? "foto" : null);
+    if (!alvo) return;
+    ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+    arr = {alvo, x: p.x, y: p.y, dx: AJ[q][alvo].dx, dy: AJ[q][alvo].dy}; cv.style.cursor = "grabbing";
+  });
+  cv.addEventListener("pointermove", ev => {
+    if (!det.open) return;
+    const p = pontoCanvas(cv, ev);
+    if (!arr){ const h = HIT[q]; cv.style.cursor = (dentro(p, h.tag) || dentro(p, h.foto)) ? "grab" : "default"; return; }
+    const a = AJ[q][arr.alvo];
+    a.dx = clamp(arr.dx + p.x - arr.x, -cv.width*0.8, cv.width*0.8);
+    a.dy = clamp(arr.dy + p.y - arr.y, -cv.height*0.8, cv.height*0.8);
+    desenhar();
+  });
+  const fim = () => { if (arr){ arr = null; cv.style.cursor = "grab"; } };
+  cv.addEventListener("pointerup", fim); cv.addEventListener("pointercancel", fim);
+  det.addEventListener("toggle", () => { cv.classList.toggle("editando", det.open); if (!det.open) cv.style.cursor = ""; if (q === "story" && det.open) voltarImagem(); });
+  $("fs" + Q).addEventListener("input", e => { AJ[q].foto.s = e.target.value/100; if (q === "story") voltarImagem(); desenhar(); });
+  $("ts" + Q).addEventListener("input", e => { AJ[q].tag.s = e.target.value/100; if (q === "story") voltarImagem(); desenhar(); });
+  $("rs" + Q).addEventListener("click", () => { AJ[q] = PADRAO(); sincronizarAjustes(); if (q === "story") voltarImagem(); desenhar(); toast("Posição padrão restaurada."); });
+}
+ligarArraste(cFeed, "feed", "Feed"); ligarArraste(cStory, "story", "Story");
+
 /* ---------- estado da oferta ---------- */
 const CAMPOS = ["nome","fabricante","info","formato","precoDe","preco","pagamento","validade"];
 function estado(){
   const e = {v:1}; CAMPOS.forEach(id => { e[id] = $(id).value; });
-  e.foto = produto ? produto.toDataURL("image/png") : null; return e;
+  e.foto = produto ? produto.toDataURL("image/png") : null; e.ajustes = JSON.parse(JSON.stringify(AJ)); return e;
 }
 async function aplicarEstado(e){
   CAMPOS.forEach(id => { if (e[id] != null) $(id).value = e[id]; });
-  legendaEditada = false; voltarImagem();
+  const pj = e.ajustes || {};
+  AJ = {feed: Object.assign(PADRAO(), pj.feed || {}), story: Object.assign(PADRAO(), pj.story || {})};
+  sincronizarAjustes(); legendaEditada = false; voltarImagem();
   if (e.foto){
     fotoOriginal = await carregarFoto(e.foto);
     $("tirarFundo").checked = false; $("tirarMiolo").checked = false;
@@ -704,7 +775,7 @@ async function loja(modo, fn){
   const db = await abrirDB();
   return new Promise((res, rej) => { const t = db.transaction("ofertas", modo); const req = fn(t.objectStore("ofertas")); t.oncomplete = () => res(req && req.result); t.onerror = () => rej(t.error); });
 }
-function chaveOferta(e){ return [e.nome, e.fabricante, e.info, e.formato, e.precoDe, e.preco, e.pagamento, e.validade, e.foto ? e.foto.length : 0].join("|"); }
+function chaveOferta(e){ return [e.nome, e.fabricante, e.info, e.formato, e.precoDe, e.preco, e.pagamento, e.validade, e.foto ? e.foto.length : 0, JSON.stringify(e.ajustes || "")].join("|"); }
 function miniatura(){ const c = document.createElement("canvas"); c.width = 240; c.height = 300; c.getContext("2d").drawImage(cFeed, 0, 0, 240, 300); return c.toDataURL("image/jpeg", 0.8); }
 async function salvarOferta(silencioso){
   if (!produto || !$("nome").value.trim() || !$("preco").value.trim()){ if (!silencioso) toast("Preencha a foto, o nome e o preço antes de salvar."); return; }
